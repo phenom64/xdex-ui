@@ -7,7 +7,7 @@ function parseJsonc(content) {
     if (!content) return null;
     try {
         // Match string literals first, and keep them. Only strip comments outside of strings.
-        let cleaned = content.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*")|(\/\*[\s\S]*?\/|\/\/.*)/g, (match, g1) => {
+        let cleaned = content.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*")|(\/\*[\s\S]*?\*\/|\/\/.*)/g, (match, g1) => {
             return g1 ? g1 : "";
         });
         // Strip trailing commas
@@ -64,9 +64,39 @@ function resolveExecutable(name) {
     }
 }
 
+// Dynamically find pwsh.exe in WindowsApps directory to handle App Execution Aliases
+function findWindowsStorePwsh() {
+    if (process.platform !== "win32") return null;
+    const localAppData = getLocalAppDataPath();
+    if (!localAppData) return null;
+    const appsDir = path.join(localAppData, "Microsoft", "WindowsApps");
+    if (!fs.existsSync(appsDir)) return null;
+    try {
+        const subdirs = fs.readdirSync(appsDir).filter(f => f.toLowerCase().startsWith("microsoft.powershell_"));
+        for (const subdir of subdirs) {
+            const fullSubdirPath = path.join(appsDir, subdir);
+            try {
+                // If it is a directory and contains pwsh.exe
+                const stat = fs.statSync(fullSubdirPath);
+                if (stat.isDirectory()) {
+                    const files = fs.readdirSync(fullSubdirPath);
+                    if (files.includes("pwsh.exe")) {
+                        return path.join(fullSubdirPath, "pwsh.exe");
+                    }
+                }
+            } catch (err) {
+                // Skip if error
+            }
+        }
+    } catch (e) {
+        return null;
+    }
+    return null;
+}
+
 // Extract the executable from commandline string (e.g. remove arguments and quotes)
 function extractExecutable(cmdline) {
-    if (!cmdline) return null;
+    if (!cmdline || typeof cmdline !== "string") return null;
     cmdline = cmdline.trim();
     if (cmdline.startsWith('"')) {
         const nextQuote = cmdline.indexOf('"', 1);
@@ -79,7 +109,7 @@ function extractExecutable(cmdline) {
 
 // Expand environment variables
 function expandEnvVars(str) {
-    if (!str) return str;
+    if (!str || typeof str !== "string") return str;
     return str.replace(/%([^%]+)%/g, (_, n) => process.env[n] || `%${n}%`);
 }
 
@@ -106,7 +136,7 @@ function getDefaultProfile(settings) {
     let defaultProfileId = settings.defaultProfile;
     const list = getProfilesList(settings);
 
-    if (!defaultProfileId) {
+    if (!defaultProfileId || typeof defaultProfileId !== "string") {
         return list.length > 0 ? list[0] : null;
     }
 
@@ -114,13 +144,13 @@ function getDefaultProfile(settings) {
 
     // Match by guid (with or without braces) or name
     let matched = list.find(p => {
-        if (p.guid && typeof p.guid === 'string') {
+        if (p && p.guid && typeof p.guid === 'string') {
             const guid = p.guid.trim().toLowerCase();
             if (guid === defaultProfileId || guid.replace(/[{}]/g, "") === defaultProfileId.replace(/[{}]/g, "")) {
                 return true;
             }
         }
-        if (p.name && typeof p.name === 'string') {
+        if (p && p.name && typeof p.name === 'string') {
             if (p.name.trim().toLowerCase() === defaultProfileId) {
                 return true;
             }
@@ -149,7 +179,7 @@ function getShell() {
             let cmdline = defaultProfile.commandline || defaultProfile.commandLine;
             
             // If commandline is not explicitly set, but source is
-            if (!cmdline && defaultProfile.source) {
+            if (!cmdline && defaultProfile.source && typeof defaultProfile.source === "string") {
                 const srcLower = defaultProfile.source.toLowerCase();
                 if (srcLower.includes("powershellcore") || srcLower.includes("pwsh")) {
                     cmdline = "pwsh.exe";
@@ -166,7 +196,7 @@ function getShell() {
                     const exeLower = exe.toLowerCase();
                     if (exeLower.endsWith("pwsh") || exeLower.endsWith("pwsh.exe")) {
                         // Check if pwsh exists
-                        const resolvedPwsh = resolveExecutable(exe) || resolveExecutable("pwsh.exe") || resolveExecutable("pwsh");
+                        const resolvedPwsh = resolveExecutable(exe) || resolveExecutable("pwsh.exe") || resolveExecutable("pwsh") || findWindowsStorePwsh();
                         if (resolvedPwsh) {
                             shellPath = resolvedPwsh;
                         } else {
@@ -183,7 +213,7 @@ function getShell() {
 
     // Default fallback if settings are missing or not resolved
     if (!shellPath) {
-        const resolvedPwsh = resolveExecutable("pwsh.exe") || resolveExecutable("pwsh");
+        const resolvedPwsh = resolveExecutable("pwsh.exe") || resolveExecutable("pwsh") || findWindowsStorePwsh();
         if (resolvedPwsh) {
             shellPath = resolvedPwsh;
         } else {
@@ -204,10 +234,10 @@ function getFontFamily() {
         const defaultProfile = getDefaultProfile(settings);
         const getFromProfile = (prof) => {
             if (!prof) return null;
-            if (prof.font && typeof prof.font === 'object' && prof.font.face) {
+            if (prof.font && typeof prof.font === 'object' && prof.font.face && typeof prof.font.face === "string") {
                 return prof.font.face;
             }
-            if (prof.fontFace) {
+            if (prof.fontFace && typeof prof.fontFace === "string") {
                 return prof.fontFace;
             }
             return null;
@@ -233,13 +263,13 @@ function getColorScheme(schemeName) {
     const settings = readSettings();
     let targetSchemeName = schemeName;
 
-    if (targetSchemeName === "default" || !targetSchemeName) {
+    if (targetSchemeName === "default" || !targetSchemeName || typeof targetSchemeName !== "string") {
         targetSchemeName = null;
         if (settings) {
             const defaultProfile = getDefaultProfile(settings);
-            if (defaultProfile && defaultProfile.colorScheme) {
+            if (defaultProfile && defaultProfile.colorScheme && typeof defaultProfile.colorScheme === "string") {
                 targetSchemeName = defaultProfile.colorScheme;
-            } else if (settings.profiles && settings.profiles.defaults && settings.profiles.defaults.colorScheme) {
+            } else if (settings.profiles && settings.profiles.defaults && settings.profiles.defaults.colorScheme && typeof settings.profiles.defaults.colorScheme === "string") {
                 targetSchemeName = settings.profiles.defaults.colorScheme;
             }
         }
@@ -249,7 +279,7 @@ function getColorScheme(schemeName) {
     }
 
     if (settings && Array.isArray(settings.schemes)) {
-        const matchedScheme = settings.schemes.find(s => s && s.name && s.name.toLowerCase() === targetSchemeName.toLowerCase());
+        const matchedScheme = settings.schemes.find(s => s && s.name && typeof s.name === "string" && s.name.toLowerCase() === targetSchemeName.toLowerCase());
         if (matchedScheme) {
             return matchedScheme;
         }
