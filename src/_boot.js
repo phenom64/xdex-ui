@@ -100,9 +100,35 @@ if (!fs.existsSync(settingsFile)) {
         hideDotfiles: false,
         fsListView: false,
         experimentalGlobeFeatures: false,
-        experimentalFeatures: false
+        experimentalFeatures: false,
+        retroTerminalEffect: false,
+        windowsTerminalColorScheme: "",
+        applyTerminalSchemeToUI: false
     }, "", 4));
     signale.info(`Default settings written to ${settingsFile}`);
+} else {
+    // If settings.json exists, ensure all default keys exist
+    try {
+        let currentSettings = JSON.parse(fs.readFileSync(settingsFile, "utf-8"));
+        let updated = false;
+        const defaults = {
+            retroTerminalEffect: false,
+            windowsTerminalColorScheme: "",
+            applyTerminalSchemeToUI: false
+        };
+        for (const key in defaults) {
+            if (!(key in currentSettings)) {
+                currentSettings[key] = defaults[key];
+                updated = true;
+            }
+        }
+        if (updated) {
+            fs.writeFileSync(settingsFile, JSON.stringify(currentSettings, "", 4));
+            signale.info(`Default settings keys initialized in existing settings.json`);
+        }
+    } catch(e) {
+        signale.warn(`Could not check/initialize default keys in settings.json: ${e.message}`);
+    }
 }
 // Create default shortcuts file
 if (!fs.existsSync(shortcutsFile)) {
