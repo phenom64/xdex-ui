@@ -72,7 +72,8 @@ class Terminal {
                 });
             }
 
-            let color = require("color").default;
+            let ColorClass = require("color");
+            let color = typeof ColorClass === "function" ? ColorClass : ColorClass.default;
             let colorify;
             if (doCustomFilter) {
                 colorify = (base, target) => {
