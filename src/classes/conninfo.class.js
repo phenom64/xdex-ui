@@ -4,18 +4,21 @@ class Conninfo {
 
         // Create DOM
         this.parent = document.getElementById(parentId);
-        this.parent.innerHTML += `<div id="mod_conninfo">
-            <div id="mod_conninfo_innercontainer">
+        const container = document.createElement("div");
+        container.id = "mod_conninfo";
+        container.innerHTML = `<div id="mod_conninfo_innercontainer">
                 <h1>NETWORK TRAFFIC<i>UP / DOWN, MB/S</i></h1>
                 <h2>TOTAL<i>0B OUT, 0B IN</i></h2>
                 <canvas id="mod_conninfo_canvas_top"></canvas>
                 <canvas id="mod_conninfo_canvas_bottom"></canvas>
                 <h3>OFFLINE</h3>
-            </div>
-        </div>`;
+            </div>`;
+        this.parent.appendChild(container);
 
-        this.current = document.querySelector("#mod_conninfo_innercontainer > h1 > i");
-        this.total = document.querySelector("#mod_conninfo_innercontainer > h2 > i");
+        const inner = container.querySelector("#mod_conninfo_innercontainer");
+        this.current = inner.querySelector("h1 > i");
+        this.total = inner.querySelector("h2 > i");
+        this.container = container;
         let pbModule = require("pretty-bytes");
         this._pb = typeof pbModule === "function" ? pbModule : pbModule.default;
 
@@ -53,8 +56,8 @@ class Conninfo {
         this.charts[0].addTimeSeries(this.series[0], {lineWidth:1.7,strokeStyle:`rgb(${window.theme.r},${window.theme.g},${window.theme.b})`});
         this.charts[1].addTimeSeries(this.series[1], {lineWidth:1.7,strokeStyle:`rgb(${window.theme.r},${window.theme.g},${window.theme.b})`});
 
-        this.charts[0].streamTo(document.getElementById("mod_conninfo_canvas_top"), 1000);
-        this.charts[1].streamTo(document.getElementById("mod_conninfo_canvas_bottom"), 1000);
+        this.charts[0].streamTo(container.querySelector("#mod_conninfo_canvas_top"), 1000);
+        this.charts[1].streamTo(container.querySelector("#mod_conninfo_canvas_bottom"), 1000);
 
         // Init updater
         this.updateInfo();
@@ -63,15 +66,16 @@ class Conninfo {
         }, 1000);
     }
     updateInfo() {
+        if (document.visibilityState === "hidden") return;
         let time = new Date().getTime();
 
         if (window.mods.netstat.offline || window.mods.netstat.iface === null) {
             this.series[0].append(time, 0);
             this.series[1].append(time, 0);
-            document.querySelector("div#mod_conninfo").setAttribute("class", "offline");
+            if (this.container.className !== "offline") this.container.setAttribute("class", "offline");
             return;
         } else {
-            document.querySelector("div#mod_conninfo").setAttribute("class", "");
+            if (this.container.className !== "") this.container.setAttribute("class", "");
             window.si.networkStats(window.mods.netstat.iface).then(data => {
 
                 let max0 = this.series[0].maxValue;
@@ -85,8 +89,12 @@ class Conninfo {
                 this.series[0].append(time, data[0].tx_sec/125000);
                 this.series[1].append(time, -data[0].rx_sec/125000);
 
-                this.total.innerText = `${this._pb(data[0].tx_bytes)} OUT, ${this._pb(data[0].rx_bytes)} IN`.toUpperCase();
-                this.current.innerText = "UP " + parseFloat(data[0].tx_sec/125000).toFixed(2) + " DOWN " + parseFloat(data[0].rx_sec/125000).toFixed(2);
+                const total = `${this._pb(data[0].tx_bytes)} OUT, ${this._pb(data[0].rx_bytes)} IN`.toUpperCase();
+                const current = "UP " + parseFloat(data[0].tx_sec/125000).toFixed(2) + " DOWN " + parseFloat(data[0].rx_sec/125000).toFixed(2);
+                if (this.total.innerText !== total) this.total.innerText = total;
+                if (this.current.innerText !== current) this.current.innerText = current;
+            }).catch(e => {
+                console.error("Connection Info Error:", e);
             });
         }
     }

@@ -1,5 +1,10 @@
 class DocReader {
     constructor(opts) {
+        this._init(opts);
+    }
+
+    async _init(opts) {
+        const pdfjsLib = await import("../node_modules/pdfjs-dist/build/pdf.mjs");
         pdfjsLib.GlobalWorkerOptions.workerSrc = './node_modules/pdfjs-dist/build/pdf.worker.mjs';
         const modalElementId = "modal_" + opts.modalId;
         const path = opts.path;
@@ -29,10 +34,10 @@ class DocReader {
                     renderTask.promise.then(function () {
                         pageRendering = false;
                         if (pageNumPending !== null) {
-                            renderPage(pageNumPending);
+                            this.renderPage(pageNumPending);
                             pageNumPending = null;
                         }
-                    });
+                    }.bind(this));
                 });
             });
             document.getElementById(modalElementId).querySelector(".page_num").textContent = num;
@@ -83,7 +88,7 @@ class DocReader {
         document.getElementById(modalElementId).querySelector(".zoom_in").addEventListener('click', this.zoomIn);
         document.getElementById(modalElementId).querySelector(".zoom_out").addEventListener('click', this.zoomOut);
 
-        pdfjsLib.getDocument(path).promise.then((pdfDoc_) => {
+        loadingTask.promise.then((pdfDoc_) => {
             pdfDoc = pdfDoc_;
             document.getElementById(modalElementId).querySelector(".page_count").textContent = pdfDoc.numPages;
             this.renderPage(pageNum);

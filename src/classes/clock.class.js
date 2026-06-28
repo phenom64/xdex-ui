@@ -7,9 +7,12 @@ class Clock {
 
         // Create DOM
         this.parent = document.getElementById(parentId);
-        this.parent.innerHTML += `<div id="mod_clock" class="${(this.twelveHours) ? "mod_clock_twelve" : ""}">
-            <h1 id="mod_clock_text"><span>?</span><span>?</span><span>:</span><span>?</span><span>?</span><span>:</span><span>?</span><span>?</span></h1>
-        </div>`;
+        const container = document.createElement("div");
+        container.id = "mod_clock";
+        if (this.twelveHours) container.className = "mod_clock_twelve";
+        container.innerHTML = `<h1 id="mod_clock_text"><span>?</span><span>?</span><span>:</span><span>?</span><span>?</span><span>:</span><span>?</span><span>?</span></h1>`;
+        this.parent.appendChild(container);
+        this.clockText = container.querySelector("#mod_clock_text");
 
         this.lastTime = new Date();
 
@@ -19,6 +22,7 @@ class Clock {
         }, 1000);
     }
     updateClock() {
+        if (document.visibilityState === "hidden") return;
         let time = new Date();
         let array = [time.getHours(), time.getMinutes(), time.getSeconds()];
 
@@ -44,7 +48,9 @@ class Clock {
         
         if (this.twelveHours) clockString += `<span>${this.ampm}</span>`;
 
-        document.getElementById("mod_clock_text").innerHTML = clockString;
+        if (this.clockText.innerHTML !== clockString) {
+            this.clockText.innerHTML = clockString;
+        }
         this.lastTime = time;
     }
 }

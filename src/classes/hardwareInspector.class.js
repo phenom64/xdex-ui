@@ -26,18 +26,24 @@ class HardwareInspector {
         this.updateInfo();
         this.infoUpdater = setInterval(() => {
             this.updateInfo();
-        }, 20000);
+        }, 300000);
     }
     updateInfo() {
+        if (document.visibilityState === "hidden") return;
         window.si.system().then(d => {
             window.si.chassis().then(e => {
                 document.getElementById("mod_hardwareInspector_manufacturer").innerText = this._trimDataString(d.manufacturer);
                 document.getElementById("mod_hardwareInspector_model").innerText = this._trimDataString(d.model, d.manufacturer, e.type);
                 document.getElementById("mod_hardwareInspector_chassis").innerText = e.type;
+            }).catch(e => {
+                console.error("Hardware Inspector Chassis Error:", e);
             });
+        }).catch(e => {
+            console.error("Hardware Inspector Error:", e);
         });
     }
     _trimDataString(str, ...filters) {
+        if (typeof str !== "string") return "";
         return str.trim().split(" ").filter(word => {
             if (typeof filters !== "object") return true;
 

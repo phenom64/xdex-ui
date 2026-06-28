@@ -20,6 +20,7 @@ class Toplist {
         }, 2000);
     }
     updateList() {
+        if (document.visibilityState === "hidden") return;
         if (this.currentlyUpdating) return;
 
         this.currentlyUpdating = true;
@@ -53,6 +54,9 @@ class Toplist {
                                 <td>${Math.round(proc.mem*10)/10}%</td>`;
                 document.getElementById("mod_toplist_table").append(el);
             });
+            this.currentlyUpdating = false;
+        }).catch(e => {
+            console.error("Toplist Error:", e);
             this.currentlyUpdating = false;
         });
     }
@@ -188,6 +192,9 @@ class Toplist {
                         document.getElementById("processList").append(el);
                     });
                 }
+            }).catch(e => {
+                console.error("Process List Error:", e);
+                currentlyUpdating = false;
             });
         }
 
@@ -216,7 +223,7 @@ class Toplist {
             },
             () => {
                 removed = true;
-                //clearInterval(updateInterval);
+                clearInterval(updateInterval);
             }
         );
 

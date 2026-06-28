@@ -10,22 +10,25 @@ class LocationGlobe {
 
         // Create DOM and include lib
         this.parent = document.getElementById(parentId);
-        this.parent.innerHTML += `<div id="mod_globe">
-            <div id="mod_globe_innercontainer">
+        const container = document.createElement("div");
+        container.id = "mod_globe";
+        container.innerHTML = `<div id="mod_globe_innercontainer">
                 <h1>WORLD VIEW<i>GLOBAL NETWORK MAP</i></h1>
                 <h2>ENDPOINT LAT/LON<i class="mod_globe_headerInfo">0.0000, 0.0000</i></h2>
                 <div id="mod_globe_canvas_placeholder"></div>
                 <h3>OFFLINE</h3>
-            </div>
-        </div>`;
+            </div>`;
+        this.parent.appendChild(container);
 
         this.lastgeo = {};
         this.conns = [];
-
+        this.container = container;
+        this.headerInfo = container.querySelector("i.mod_globe_headerInfo");
+        this._isVisible = () => document.visibilityState !== "hidden";
 
         setTimeout(() => {
-            let container = document.getElementById("mod_globe_innercontainer");
-            let placeholder = document.getElementById("mod_globe_canvas_placeholder");
+            let innerContainer = this.container.querySelector("#mod_globe_innercontainer");
+            let placeholder = this.container.querySelector("#mod_globe_canvas_placeholder");
 
             // Create Globe
             this.globe = new this.ENCOM.Globe(placeholder.offsetWidth, placeholder.offsetHeight, {
@@ -47,11 +50,11 @@ class LocationGlobe {
 
             // Place Globe
             placeholder.remove();
-            container.append(this.globe.domElement);
+            innerContainer.append(this.globe.domElement);
 
             // Init animations
             this._animate = () => {
-                if (window.mods.globe.globe) {
+                if (window.mods.globe.globe && window.mods.globe._isVisible()) {
                     window.mods.globe.globe.tick();
                 }
                 if (window.mods.globe._animate) {
@@ -72,15 +75,38 @@ class LocationGlobe {
 
             // resize handler
             this.resizeHandler = () => {
-                let canvas = document.querySelector("div#mod_globe canvas");
-                window.mods.globe.globe.camera.aspect = canvas.offsetWidth / canvas.offsetHeight;
-                window.mods.globe.globe.camera.updateProjectionMatrix();
-                window.mods.globe.globe.renderer.setSize(canvas.offsetWidth, canvas.offsetHeight);
+                let canvas = this.container.querySelector("canvas");
+                if (canvas && window.mods.globe.globe) {
+                    window.mods.globe.globe.camera.aspect = canvas.offsetWidth / canvas.offsetHeight;
+                    window.mods.globe.globe.camera.updateProjectionMatrix();
+                    window.mods.globe.globe.renderer.setSize(canvas.offsetWidth, canvas.offsetHeight);
+                }
             };
             window.addEventListener("resize", this.resizeHandler);
 
             // Connections
             this.conns = [];
+            this.setEndpointGeo = geo => {
+                if (!geo || typeof geo.latitude !== "number" || typeof geo.longitude !== "number") return;
+
+                const normalized = {
+                    latitude: Math.round(geo.latitude*10000)/10000,
+                    longitude: Math.round(geo.longitude*10000)/10000
+                };
+                const header = `${normalized.latitude}, ${normalized.longitude}`;
+                if (this.headerInfo.innerText !== header) this.headerInfo.innerText = header;
+
+                if (normalized.latitude !== this.lastgeo.latitude || normalized.longitude !== this.lastgeo.longitude) {
+                    this.removePins();
+                    this.removeMarkers();
+                    this.conns = [];
+                    this._locPin = this.globe.addPin(normalized.latitude, normalized.longitude, "", 1.2);
+                    this._locMarker = this.globe.addMarker(normalized.latitude, normalized.longitude, "", false, 1.2);
+                    this.lastgeo = normalized;
+                }
+
+                if (this.container.className !== "") this.container.setAttribute("class", "");
+            };
             this.addConn = ip => {
                 let data = null;
                 try {
@@ -100,6 +126,7 @@ class LocationGlobe {
             };
             this.removeConn = ip => {
                 let index = this.conns.findIndex(x => x.ip === ip);
+                if (index === -1) return;
                 this.conns[index].pin.remove();
                 this.conns.splice(index, 1);
             };
@@ -157,22 +184,26 @@ class LocationGlobe {
         }
     }
     removeMarkers() {
-        this.globe.markers.forEach(marker => { marker.remove(); });
-        this.globe.markers = [];
+        if (this.globe && this.globe.markers) {
+            this.globe.markers.forEach(marker => { marker.remove(); });
+            this.globe.markers = [];
+        }
     }
     removePins() {
-        this.globe.pins.forEach(pin => {
-            pin.remove();
-        });
-        this.globe.pins = [];
+        if (this.globe && this.globe.pins) {
+            this.globe.pins.forEach(pin => {
+                pin.remove();
+            });
+            this.globe.pins = [];
+        }
     }
     getRandomInRange(from, to, fixed) {
         return (Math.random() * (to - from) + from).toFixed(fixed) * 1;
     }
     updateLoc() {
         if (window.mods.netstat.offline) {
-            document.querySelector("div#mod_globe").setAttribute("class", "offline");
-            document.querySelector("i.mod_globe_headerInfo").innerText = "(OFFLINE)";
+            if (this.container.className !== "offline") this.container.setAttribute("class", "offline");
+            if (this.headerInfo.innerText !== "(OFFLINE)") this.headerInfo.innerText = "(OFFLINE)";
 
             this.removePins();
             this.removeMarkers();
@@ -183,33 +214,27 @@ class LocationGlobe {
             };
         } else {
             this.updateConOnlineConnection().then(() => {
-                document.querySelector("div#mod_globe").setAttribute("class", "");
+                if (this.container.className !== "") this.container.setAttribute("class", "");
             }).catch(() => {
-                document.querySelector("i.mod_globe_headerInfo").innerText = "UNKNOWN";
+                if (this.headerInfo.innerText !== "UNKNOWN") this.headerInfo.innerText = "UNKNOWN";
             })
         }
     }
     async updateConOnlineConnection() {
         let newgeo = window.mods.netstat.ipinfo.geo;
-        newgeo.latitude = Math.round(newgeo.latitude*10000)/10000;
-        newgeo.longitude = Math.round(newgeo.longitude*10000)/10000;
-
-        if (newgeo.latitude !== this.lastgeo.latitude || newgeo.longitude !== this.lastgeo.longitude) {
-
-            document.querySelector("i.mod_globe_headerInfo").innerText = `${newgeo.latitude}, ${newgeo.longitude}`;
-            this.removePins();
-            this.removeMarkers();
-            //this.addRandomConnectedPoints();
-            this.conns = [];
-
-            this._locPin = this.globe.addPin(newgeo.latitude, newgeo.longitude, "", 1.2);
-            this._locMarker = this.globe.addMarker(newgeo.latitude, newgeo.longitude, "", false, 1.2);
+        if (!newgeo || typeof newgeo.latitude !== "number" || typeof newgeo.longitude !== "number") {
+            if (this.lastgeo && typeof this.lastgeo.latitude === "number" && typeof this.lastgeo.longitude === "number") {
+                const header = `${this.lastgeo.latitude}, ${this.lastgeo.longitude}`;
+                if (this.headerInfo.innerText !== header) this.headerInfo.innerText = header;
+            } else if (this.headerInfo.innerText !== "GEOIP PENDING") {
+                this.headerInfo.innerText = "GEOIP PENDING";
+            }
+            return;
         }
-
-        this.lastgeo = newgeo;
-        document.querySelector("div#mod_globe").setAttribute("class", "");
+        this.setEndpointGeo(newgeo);
     }
     updateConns() {
+        if (!this._isVisible()) return false;
         if (!window.mods.globe.globe || window.mods.netstat.offline) return false;
         window.si.networkConnections().then(conns => {
             let newconns = [];
@@ -232,6 +257,8 @@ class LocationGlobe {
             newconns.forEach(ip => {
                 this.addConn(ip);
             });
+        }).catch(e => {
+            console.error("Globe Connections Error:", e);
         });
     }
 }

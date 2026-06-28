@@ -1,0 +1,47 @@
+{
+    "colors": {
+        "r": 213,
+        "g": 162,
+        "b": 0,
+        "light_black": "#050300",
+        "grey": "#171104",
+        "black": "#000000",
+        "white": "#C7C7C7",
+        "blue": "#0225C7",
+        "cyan": "#00C5C7",
+        "green": "#00C200",
+        "magenta": "#CA30C7",
+        "red": "#C91B00",
+        "yellow": "#C7C400",
+        "brightBlack": "#686868",
+        "brightWhite": "#FFFFFF",
+        "brightBlue": "#6871FF",
+        "brightCyan": "#60FDFF",
+        "brightGreen": "#5FFA68",
+        "brightMagenta": "#FF77FF",
+        "brightRed": "#FF6E67",
+        "brightYellow": "#FFFC67"
+    },
+    "cssvars": {
+        "font_main": "Ioskeley Mono",
+        "font_main_light": "Ioskeley Mono"
+    },
+    "terminal": {
+        "fontFamily": "Fira Mono",
+        "letterSpacing": 0,
+        "cursorStyle": "block",
+        "cursorBlink": false,
+        "foreground": "#D5A200",
+        "background": "#000000",
+        "cursor": "#C7C7C7",
+        "cursorAccent": "#000000",
+        "selection": "#6B5B02"
+    },
+    "globe": {
+        "base": "#000000",
+        "marker": "#D5A200",
+        "pin": "#FF6E67",
+        "satellite": "#FFFC67"
+    },
+    "injectCSS": "section#main_shell{border-color:#100B00;position:relative;left:29vh;height:94.2%;bottom:1vh;border-bottom-left-radius:1.7vh;border-top-left-radius:1.7vh;border-bottom-right-radius:0;border-top-right-radius:0;background:#000000;box-shadow:0 0 1.4vh rgba(213,162,0,.16);}ul#main_shell_tabs{margin-bottom:.5vh;background:#050300;border-bottom:none;flex-direction:row-reverse;}h1#main_shell_greeting{color:#D5A200;}section#main_shell>h3.title{left:calc(29vh + 16.5vw)!important;}section#mod_column_right{left:28.5vh!important;}section#mod_column_right>h3.title{left:29.6vh!important;}div#mod_netstat_inner{height:6.85vh;padding-top:.5vh;}div#mod_globe_innercontainer{padding-bottom:.95vh;}div#mod_conninfo canvas{height:8vh!important;}@media (aspect-ratio:64/27){section#mod_column_left>h3.title{left:1.6vh!important}section#mod_column_left{left:1vh!important}section#mod_column_right>h3.title{left:44vh!important}section#mod_column_right{left:43vh!important}section#main_shell>h3.title{left:37vw!important;width:60%!important}section#main_shell{left:41vh;width:60%}}section.mod_column>div h1:first-child>i{letter-spacing:.01vh;bottom:1.9vh!important;}div#mod_toplist>h1{margin:0 0 -5vh;}div#mod_netstat_inner>h1:first-child{margin-bottom:-.8vh;}div#mod_globe_innercontainer>h1:first-child,div#mod_conninfo_innercontainer>h1:first-child{margin:0 0 -2vh;}div#mod_toplist::after{top:-13.9vh;}section>h3.title:first-child::after{right:-.85vh;bottom:-.6vh;}ul#main_shell_tabs>li.active>p{transform:skewX(35deg) scale(.8);position:relative;top:-.1vh;letter-spacing:.1vh;}ul#main_shell_tabs>li{background:#050300;color:#D5A200;transform:skewX(-35deg);z-index:15;}ul#main_shell_tabs>li.active{background:#000000;color:#FFFC67;transform:skewX(-35deg) scale(1.2);z-index:10;}ul#main_shell_tabs>li>p{transform:skewX(35deg)}ul#main_shell_tabs>li:not(:first-child){border-left:none;border-right:.18vh solid rgba(var(--color_r),var(--color_g),var(--color_b),.5);}progress::-webkit-progress-value{background:#D5A200!important;}progress::-webkit-progress-bar{background:#171104!important;}div.mod_ramwatcher_point.free,div.mod_ramwatcher_point.available{background:#D5A200!important;opacity:1!important;}div.mod_ramwatcher_point.active{background:#6B5B02!important;opacity:.45!important;}div#mod_netstat_innercontainer>div:nth-child(2)>h2{color:#FFFC67;}section#keyboard{display:none;}section#filesystem{position:absolute;top:inherit;bottom:.925vh;left:.8vh;width:31.5vw;margin-top:5vh;}div#fs_disp_container{width:31.5vw;height:21vh;margin-top:5vh;grid-template-columns:repeat(auto-fill,minmax(7.5vh,1fr));grid-auto-rows:7.5vh;grid-gap:.9vh;}div#fs_disp_container>*{width:7.5vh;height:7.5vh;}div#fs_disp_container>*>svg{width:4vh;}div.fs_disp_showDisks>svg,div.fs_disp_up>svg{fill:#FFFC67!important;}section#filesystem>h3.title{width:31.5vw;}section>h3.title:first-child>p:first-child{width:20%;}section>h3.title:first-child>p:last-child{width:78.5%;}div#fs_space_bar>progress{width:51%;position:relative;left:20%;}div#fs_disp_container>*>h3{font-size:1.1vh;}"
+}

@@ -4,9 +4,9 @@ class Cpuinfo {
 
         // Create initial DOM
         this.parent = document.getElementById(parentId);
-        this.parent.innerHTML += `<div id="mod_cpuinfo">
-        </div>`;
-        this.container = document.getElementById("mod_cpuinfo");
+        this.container = document.createElement("div");
+        this.container.id = "mod_cpuinfo";
+        this.parent.appendChild(this.container);
 
         // Init Smoothie
         let TimeSeries = require("smoothie").TimeSeries;

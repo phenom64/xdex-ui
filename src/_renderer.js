@@ -55,11 +55,12 @@ window.lastWindowState = require(lastWindowStateFile);
 
 // Helper to set body class while preserving retro CRT effect if enabled
 function setBodyClass(className) {
-    if (window.settings && window.settings.retroTerminalEffect === true) {
-        document.body.className = className ? `${className} retro-crt` : "retro-crt";
-    } else {
-        document.body.className = className || "";
-    }
+    const classes = new Set((className || "").split(/\s+/).filter(Boolean));
+    classes.delete("retro-crt");
+    classes.delete("retro-ui-glow");
+    if (window.settings && window.settings.retroTerminalEffect === true) classes.add("retro-crt");
+    if (window.settings && window.settings.retroTerminalEffect === true && window.settings.retroUIEffect === true) classes.add("retro-ui-glow");
+    document.body.className = Array.from(classes).join(" ");
 }
 setBodyClass(document.body.className);
 
@@ -79,13 +80,41 @@ const args = ipc.invoke("get-cli-args").then(args => {
 });
 
 // Retrieve theme override (hotswitch)
+function loadThemeFromName(themeName) {
+    let resolvedThemeName = themeName;
+    let themePath = path.join(themesDir, resolvedThemeName + ".json");
+
+    if (!fs.existsSync(themePath) && resolvedThemeName === "apple-classic-horizon-full") {
+        resolvedThemeName = "apple-classic";
+        themePath = path.join(themesDir, resolvedThemeName + ".json");
+        window.settings.theme = resolvedThemeName;
+    }
+
+    if (!fs.existsSync(themePath)) {
+        const fallbackTheme = "tron";
+        console.error(`Theme "${themeName}" not found, falling back to "${fallbackTheme}".`);
+        resolvedThemeName = fallbackTheme;
+        themePath = path.join(themesDir, fallbackTheme + ".json");
+        window.settings.theme = fallbackTheme;
+    }
+
+    try {
+        _loadTheme(require(themePath));
+    } catch (err) {
+        console.error(`Failed to load theme "${resolvedThemeName}":`, err);
+        const fallbackTheme = "tron";
+        window.settings.theme = fallbackTheme;
+        _loadTheme(require(path.join(themesDir, fallbackTheme + ".json")));
+    }
+}
+
 ipc.once("getThemeOverride", (e, theme) => {
     if (theme !== null) {
         window.settings.theme = theme;
         window.settings.nointroOverride = true;
-        _loadTheme(require(path.join(themesDir, window.settings.theme + ".json")));
+        loadThemeFromName(window.settings.theme);
     } else {
-        _loadTheme(require(path.join(themesDir, window.settings.theme + ".json")));
+        loadThemeFromName(window.settings.theme);
     }
 });
 ipc.send("getThemeOverride");
@@ -176,21 +205,30 @@ window._loadTheme = theme => {
         document.querySelector("style.theming").remove();
     }
 
-    // Load fonts
-    let mainFont = new FontFace(theme.cssvars.font_main, `url("${path.join(fontsDir, theme.cssvars.font_main.toLowerCase().replace(/ /g, '_') + '.woff2').replace(/\\/g, '/')}")`);
-    let lightFont = new FontFace(theme.cssvars.font_main_light, `url("${path.join(fontsDir, theme.cssvars.font_main_light.toLowerCase().replace(/ /g, '_') + '.woff2').replace(/\\/g, '/')}")`);
+    // Load fonts opportunistically. Missing/bad font files must never block UI startup.
+    const loadedFontFamilies = new Set();
+    const loadFont = family => {
+        if (!family || loadedFontFamilies.has(family)) return;
 
-    document.fonts.add(mainFont);
-    document.fonts.load("12px " + theme.cssvars.font_main);
-    document.fonts.add(lightFont);
-    document.fonts.load("12px " + theme.cssvars.font_main_light);
+        const fontPath = path.join(fontsDir, family.toLowerCase().replace(/ /g, '_') + '.woff2');
+        if (!fs.existsSync(fontPath)) {
+            console.warn(`Theme font "${family}" not found at ${fontPath}`);
+            return;
+        }
 
-    const termFontPath = path.join(fontsDir, theme.terminal.fontFamily.toLowerCase().replace(/ /g, '_') + '.woff2');
-    if (fs.existsSync(termFontPath)) {
-        let termFont = new FontFace(theme.terminal.fontFamily, `url("${termFontPath.replace(/\\/g, '/')}")`);
-        document.fonts.add(termFont);
-        document.fonts.load("12px " + theme.terminal.fontFamily);
-    }
+        try {
+            const font = new FontFace(family, `url("${fontPath.replace(/\\/g, '/')}")`);
+            document.fonts.add(font);
+            loadedFontFamilies.add(family);
+            font.load().catch(err => console.warn(`Failed to load font "${family}":`, err));
+        } catch (err) {
+            console.warn(`Failed to initialize font "${family}":`, err);
+        }
+    };
+
+    loadFont(theme.cssvars.font_main);
+    loadFont(theme.cssvars.font_main_light);
+    loadFont(theme.terminal.fontFamily);
 
     document.querySelector("head").innerHTML += `<style class="theming">
     :root {
@@ -244,20 +282,31 @@ function initGraphicalErrorHandling() {
 
 function waitForFonts() {
     return new Promise(resolve => {
-        if (document.readyState !== "complete" || document.fonts.status !== "loaded") {
-            document.addEventListener("readystatechange", () => {
-                if (document.readyState === "complete") {
-                    if (document.fonts.status === "loaded") {
-                        resolve();
-                    } else {
-                        document.fonts.onloadingdone = () => {
-                            if (document.fonts.status === "loaded") resolve();
-                        };
-                    }
-                }
-            });
-        } else {
+        let resolved = false;
+        const finish = () => {
+            if (resolved) return;
+            resolved = true;
             resolve();
+        };
+        const waitForDocument = () => {
+            if (document.readyState === "complete") {
+                if (!document.fonts || document.fonts.status === "loaded") {
+                    finish();
+                } else if (document.fonts.ready) {
+                    document.fonts.ready.then(finish).catch(finish);
+                } else {
+                    document.fonts.onloadingdone = finish;
+                    document.fonts.onloadingerror = finish;
+                }
+            }
+        };
+
+        setTimeout(finish, 3000);
+
+        if (document.readyState !== "complete") {
+            document.addEventListener("readystatechange", waitForDocument);
+        } else {
+            waitForDocument();
         }
     });
 }
@@ -275,12 +324,19 @@ function initSystemInformationProxy() {
 
                 return new Promise((resolve, reject) => {
                     let id = nanoid();
-                    ipc.once("systeminformation-reply-" + id, (e, res) => {
+                    const channel = "systeminformation-reply-" + id;
+                    const timeout = setTimeout(() => {
+                        ipc.removeListener(channel, onReply);
+                        reject(new Error(`systeminformation.${prop} timed out`));
+                    }, 6000);
+                    const onReply = (e, res) => {
+                        clearTimeout(timeout);
                         if (callback) {
                             args[args.length - 1](res);
                         }
                         resolve(res);
-                    });
+                    };
+                    ipc.once(channel, onReply);
                     ipc.send("systeminformation-call", prop, id, ...args);
                 });
             };
@@ -910,6 +966,14 @@ window.openSettings = async () => {
                         </select></td>
                     </tr>
                     <tr>
+                        <td>retroUIEffect</td>
+                        <td>Apply subtle phosphor text glow to the wider UI when retro terminal effects are enabled</td>
+                        <td><select id="settingsEditor-retroUIEffect">
+                            <option>${window.settings.retroUIEffect === true}</option>
+                            <option>${window.settings.retroUIEffect !== true}</option>
+                        </select></td>
+                    </tr>
+                    <tr>
                         <td>windowsTerminalColorScheme</td>
                         <td>Name of Windows Terminal scheme to use (or "default")</td>
                         <td><input type="text" id="settingsEditor-windowsTerminalColorScheme" value="${window.settings.windowsTerminalColorScheme || ''}"></td>
@@ -975,6 +1039,7 @@ window.writeSettingsFile = () => {
         experimentalGlobeFeatures: (document.getElementById("settingsEditor-experimentalGlobeFeatures").value === "true"),
         experimentalFeatures: (document.getElementById("settingsEditor-experimentalFeatures").value === "true"),
         retroTerminalEffect: (document.getElementById("settingsEditor-retroTerminalEffect").value === "true"),
+        retroUIEffect: (document.getElementById("settingsEditor-retroUIEffect").value === "true"),
         windowsTerminalColorScheme: document.getElementById("settingsEditor-windowsTerminalColorScheme").value,
         applyTerminalSchemeToUI: (document.getElementById("settingsEditor-applyTerminalSchemeToUI").value === "true")
     };
@@ -1251,6 +1316,18 @@ window.onresize = () => {
         }
     }
 };
+
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible" || !window.mods) return;
+
+    if (window.mods.clock && typeof window.mods.clock.updateClock === "function") window.mods.clock.updateClock();
+    if (window.mods.sysinfo && typeof window.mods.sysinfo.updateBattery === "function") window.mods.sysinfo.updateBattery();
+    if (window.mods.cpuinfo && typeof window.mods.cpuinfo.updateCPUload === "function") window.mods.cpuinfo.updateCPUload();
+    if (window.mods.ramwatcher && typeof window.mods.ramwatcher.updateInfo === "function") window.mods.ramwatcher.updateInfo();
+    if (window.mods.netstat && typeof window.mods.netstat.updateInfo === "function") window.mods.netstat.updateInfo();
+    if (window.mods.conninfo && typeof window.mods.conninfo.updateInfo === "function") window.mods.conninfo.updateInfo();
+    if (window.mods.toplist && typeof window.mods.toplist.updateList === "function") window.mods.toplist.updateList();
+});
 
 // See #413
 window.resizeTimeout = null;

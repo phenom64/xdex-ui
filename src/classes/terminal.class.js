@@ -100,6 +100,7 @@ class Terminal {
 
             this.term = new this.xTerm({
                 allowProposedApi: true,
+                rendererType: "canvas",
                 cols: 80,
                 rows: 24,
                 cursorBlink: window.theme.terminal.cursorBlink || true,
@@ -140,10 +141,22 @@ class Terminal {
             let fitAddon = new FitAddon();
             this.term.loadAddon(fitAddon);
             this.term.open(document.getElementById(opts.parentId));
-            this.term.loadAddon(new WebglAddon());
+            if (!(window.settings && window.settings.retroTerminalEffect)) {
+                this.term.loadAddon(new WebglAddon());
+            }
             let ligaturesAddon = new LigaturesAddon();
             this.term.loadAddon(ligaturesAddon);
             this.term.attachCustomKeyEventHandler(e => {
+                if (e.type === "keydown" && e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey && e.code === "KeyC" && this.term.hasSelection()) {
+                    e.preventDefault();
+                    this.clipboard.copy();
+                    return false;
+                }
+                if (e.type === "keydown" && e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey && e.code === "KeyV") {
+                    e.preventDefault();
+                    this.clipboard.paste();
+                    return false;
+                }
                 window.keyboard.keydownHandler(e);
                 return true;
             });
@@ -164,9 +177,14 @@ class Terminal {
                 if (!parent || this._glowCanvas) return;
 
                 // Find the xterm rendering canvas (WebGL or Canvas2D)
-                const srcCanvas = parent.querySelector('.xterm-screen canvas') ||
-                                  parent.querySelector('canvas');
-                if (!srcCanvas) return;
+                const canvases = Array.from(parent.querySelectorAll('.xterm-screen canvas, canvas'))
+                    .filter(canvas => canvas.width > 0 && canvas.height > 0)
+                    .sort((a, b) => (b.width * b.height) - (a.width * a.height));
+                const srcCanvas = canvases[0];
+                if (!srcCanvas) {
+                    setTimeout(() => this._startGlowOverlay(), 250);
+                    return;
+                }
 
                 const overlay = document.createElement('canvas');
                 overlay.style.cssText = `
@@ -175,6 +193,7 @@ class Terminal {
                     width: 100%; height: 100%;
                     pointer-events: none;
                     z-index: 10;
+                    opacity: 1;
                     mix-blend-mode: screen;
                 `;
                 // Match the source canvas dimensions exactly
@@ -204,17 +223,20 @@ class Terminal {
                     ctx.clearRect(0, 0, overlay.width, overlay.height);
 
                     // Only draw when retro effect is enabled
-                    if (window.settings && window.settings.retroTerminalEffect) {
+                    if (window.settings && window.settings.retroTerminalEffect && document.visibilityState !== "hidden") {
                         // Pass 1: subtle wide bloom (screen blend via CSS mix-blend-mode)
                         ctx.save();
-                        ctx.filter = 'blur(3px) brightness(0.7)';
+                        ctx.globalCompositeOperation = 'lighter';
+                        ctx.globalAlpha = 0.75;
+                        ctx.filter = 'blur(4px) brightness(1.9)';
                         ctx.drawImage(srcCanvas, 0, 0);
                         ctx.restore();
 
                         // Pass 2: tight bright core glow
                         ctx.save();
-                        ctx.filter = 'blur(1.5px) brightness(1.1)';
+                        ctx.globalCompositeOperation = 'lighter';
                         ctx.globalAlpha = 0.45;
+                        ctx.filter = 'blur(1.5px) brightness(1.6)';
                         ctx.drawImage(srcCanvas, 0, 0);
                         ctx.restore();
                     }
@@ -237,7 +259,9 @@ class Terminal {
             };
 
             // Start after a short delay to let WebGL initialise and paint first
-            setTimeout(() => this._startGlowOverlay(), 500);
+            if (window.settings && window.settings.retroTerminalEffect) {
+                setTimeout(() => this._startGlowOverlay(), 500);
+            }
 
             this.Ipc.send("terminal_channel-"+this.port, "Renderer startup");
             this.Ipc.on("terminal_channel-"+this.port, (e, ...args) => {
@@ -304,7 +328,15 @@ class Terminal {
             });
 
             let parent = document.getElementById(opts.parentId);
+            parent.addEventListener("mousedown", () => {
+                this.term.focus();
+            });
+            parent.addEventListener("click", () => {
+                this.term.focus();
+            });
             parent.addEventListener("wheel", e => {
+                const xtermElement = parent.querySelector(".xterm");
+                if (xtermElement && xtermElement.classList.contains("enable-mouse-events")) return;
                 this.term.scrollLines(Math.round(e.deltaY/10));
             });
             this._lastTouchY = null;
@@ -382,13 +414,20 @@ class Terminal {
             this.clipboard = {
                 copy: () => {
                     if (!this.term.hasSelection()) return false;
-                    document.execCommand("copy");
+                    remote.clipboard.writeText(this.term.getSelection());
                     this.term.clearSelection();
                     this.clipboard.didCopy = true;
+                    return true;
                 },
                 paste: () => {
-                    this.write(remote.clipboard.readText());
+                    const text = remote.clipboard.readText();
+                    if (!text) return false;
+                    const normalized = text.replace(/\r?\n/g, "\r");
+                    const bracketed = this.term.modes && this.term.modes.bracketedPasteMode;
+                    const payload = bracketed ? `\x1b[200~${normalized}\x1b[201~` : normalized;
+                    this.write(payload);
                     this.clipboard.didCopy = false;
+                    return true;
                 },
                 didCopy: false
             };

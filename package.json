@@ -52,6 +52,16 @@
       "output": "dist",
       "app": "prebuild-src"
     },
+    "files": [
+      "**/*",
+      "!node_modules/@napi-rs/canvas*/**/*",
+      "!node_modules/**/*.pdb",
+      "!node_modules/**/*.map",
+      "!node_modules/**/*.iobj",
+      "!node_modules/**/*.ipdb",
+      "!node_modules/**/obj/**/*",
+      "!node_modules/**/.cache/**/*"
+    ],
     "forceCodeSigning": false,
     "npmRebuild": true,
     "artifactName": "xDEX-UI-${os}-${arch}.${ext}",

@@ -146,4 +146,34 @@ body.retro-crt::after {
     100% { background-position: 0 200vh, center; }
 }
 
+body.retro-ui-glow h1,
+body.retro-ui-glow h2,
+body.retro-ui-glow h3,
+body.retro-ui-glow h4,
+body.retro-ui-glow h5,
+body.retro-ui-glow h6,
+body.retro-ui-glow p,
+body.retro-ui-glow td,
+body.retro-ui-glow th,
+body.retro-ui-glow i,
+body.retro-ui-glow em,
+body.retro-ui-glow strong,
+body.retro-ui-glow label,
+body.retro-ui-glow summary,
+body.retro-ui-glow .keyboard_key > *,
+body.retro-ui-glow #filesystem * {
+    text-shadow:
+        0 0 0.28vh rgba(var(--color_r), var(--color_g), var(--color_b), 0.58),
+        0 0 0.75vh rgba(var(--color_r), var(--color_g), var(--color_b), 0.28);
+}
+
+body.retro-ui-glow input,
+body.retro-ui-glow select,
+body.retro-ui-glow textarea,
+body.retro-ui-glow button {
+    text-shadow:
+        0 0 0.28vh rgba(var(--color_r), var(--color_g), var(--color_b), 0.48),
+        0 0 0.65vh rgba(var(--color_r), var(--color_g), var(--color_b), 0.22);
+}
+
 

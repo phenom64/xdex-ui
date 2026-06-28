@@ -25,7 +25,7 @@ class RAMwatcher {
         modExtContainer.setAttribute("id", "mod_ramwatcher");
         this.parent.append(modExtContainer);
 
-        this.points = Array.from(document.querySelectorAll("div.mod_ramwatcher_point"));
+        this.points = Array.from(modExtContainer.querySelectorAll("div.mod_ramwatcher_point"));
         this.shuffleArray(this.points);
 
         // Init updaters
@@ -36,6 +36,7 @@ class RAMwatcher {
         }, 1500);
     }
     updateInfo() {
+        if (document.visibilityState === "hidden") return;
         if (this.currentlyUpdating) return;
         this.currentlyUpdating = true;
         window.si.mem().then(data => {
