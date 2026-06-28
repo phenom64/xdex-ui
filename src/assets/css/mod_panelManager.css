@@ -1,0 +1,34 @@
+/* Panel toggle transitions */
+.panel-hidden {
+    max-width: 0 !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    padding: 0 !important;
+    transition: max-width 0.35s ease, opacity 0.25s ease, padding 0.3s ease !important;
+}
+
+#mod_column_left,
+#mod_column_right {
+    transition: max-width 0.35s ease, opacity 0.25s ease;
+    overflow: hidden;
+}
+
+#keyboard {
+    transition: max-height 0.35s ease, opacity 0.25s ease;
+    overflow: hidden;
+}
+
+#keyboard.panel-hidden {
+    max-height: 0 !important;
+    min-height: 0 !important;
+}
+
+#filesystem {
+    transition: width 0.35s ease, opacity 0.25s ease;
+}
+
+#filesystem.panel-hidden {
+    width: 0 !important;
+    min-width: 0 !important;
+}

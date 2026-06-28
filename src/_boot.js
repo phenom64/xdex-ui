@@ -103,7 +103,13 @@ if (!fs.existsSync(settingsFile)) {
         experimentalFeatures: false,
         retroTerminalEffect: false,
         windowsTerminalColorScheme: "",
-        applyTerminalSchemeToUI: false
+        applyTerminalSchemeToUI: false,
+        panelToggles: {
+            keyboard: true,
+            leftColumn: true,
+            rightColumn: true,
+            filesystem: true
+        }
     }, "", 4));
     signale.info(`Default settings written to ${settingsFile}`);
 } else {
@@ -114,7 +120,8 @@ if (!fs.existsSync(settingsFile)) {
         const defaults = {
             retroTerminalEffect: false,
             windowsTerminalColorScheme: "",
-            applyTerminalSchemeToUI: false
+            applyTerminalSchemeToUI: false,
+            panelToggles: { keyboard: true, leftColumn: true, rightColumn: true, filesystem: true }
         };
         for (const key in defaults) {
             if (!(key in currentSettings)) {

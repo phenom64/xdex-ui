@@ -669,6 +669,25 @@ async function initUI() {
     await _delay(200);
 
     window.updateCheck = new UpdateChecker();
+
+    // Initialize PanelManager
+    window.panelMgr = new PanelManager(ipc, settingsFile, require('fs'));
+    window.panelMgr.register('leftColumn', document.getElementById('mod_column_left'), null);
+    window.panelMgr.register('rightColumn', document.getElementById('mod_column_right'), null);
+    window.panelMgr.register('keyboard', document.getElementById('keyboard'), null);
+    window.panelMgr.register('filesystem', document.getElementById('filesystem'), null);
+
+    // Panel toggle keyboard shortcuts
+    document.addEventListener('keydown', e => {
+        if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey) {
+            switch(e.code) {
+                case 'KeyK': e.preventDefault(); window.panelMgr.toggle('keyboard'); break;
+                case 'KeyS': e.preventDefault(); window.panelMgr.toggle('leftColumn'); break;
+                case 'KeyN': e.preventDefault(); window.panelMgr.toggle('rightColumn'); break;
+                case 'KeyF': e.preventDefault(); window.panelMgr.toggle('filesystem'); break;
+            }
+        }
+    });
 }
 
 window.themeChanger = theme => {
