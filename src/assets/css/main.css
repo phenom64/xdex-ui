@@ -69,7 +69,15 @@ section > h3.title:first-child::after {
     height: 0.46vh;
 }
 
-/* Retro CRT Effect */
+
+/* ============================================================
+   Retro CRT Effect — inspired by Windows Terminal's retro mode
+   and Hammster's windows-terminal-shaders/crt.hlsl
+   The phosphor text glow is handled in terminal.class.js via a
+   Canvas2D overlay (CSS text-shadow doesn't work on WebGL/Canvas).
+   ============================================================ */
+
+/* Layer 1: Scanlines — tight horizontal bands like a real CRT */
 body.retro-crt::before {
     content: " ";
     display: block;
@@ -80,16 +88,17 @@ body.retro-crt::before {
     height: 100vh;
     background: repeating-linear-gradient(
         0deg,
-        rgba(0, 0, 0, 0.12) 0px,
-        rgba(0, 0, 0, 0.12) 1px,
-        transparent 1px,
-        transparent 3px
+        rgba(0, 0, 0, 0.0) 0px,
+        rgba(0, 0, 0, 0.0) 1px,
+        rgba(0, 0, 0, 0.18) 1px,
+        rgba(0, 0, 0, 0.18) 2px
     );
-    z-index: 999999;
+    z-index: 999998;
     pointer-events: none;
-    animation: crt-flicker 0.15s infinite;
+    animation: crt-flicker 8s steps(1) infinite;
 }
 
+/* Layer 2: Screen curvature vignette + refresh line sweep */
 body.retro-crt::after {
     content: " ";
     display: block;
@@ -98,23 +107,43 @@ body.retro-crt::after {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: radial-gradient(
-        circle,
-        rgba(0, 0, 0, 0) 55%,
-        rgba(0, 0, 0, 0.3) 85%,
-        rgba(0, 0, 0, 0.6) 100%
-    );
-    z-index: 1000000;
+    background:
+        /* Moving refresh line — sweeps downward like a real CRT beam */
+        linear-gradient(
+            to bottom,
+            transparent 0%,
+            rgba(255, 255, 255, 0.015) 49%,
+            rgba(255, 255, 255, 0.03) 50%,
+            rgba(255, 255, 255, 0.015) 51%,
+            transparent 100%
+        ),
+        /* Screen curvature / vignette */
+        radial-gradient(
+            ellipse at center,
+            rgba(0, 0, 0, 0) 50%,
+            rgba(0, 0, 0, 0.2) 80%,
+            rgba(0, 0, 0, 0.65) 100%
+        );
+    z-index: 999999;
     pointer-events: none;
+    animation: crt-refresh-line 6s linear infinite;
 }
 
+/* Organic screen flicker — very subtle, low frequency */
 @keyframes crt-flicker {
-    0% { opacity: 0.985; }
-    50% { opacity: 1.0; }
-    100% { opacity: 0.99; }
+    0%   { opacity: 1.0; }
+    92%  { opacity: 1.0; }
+    93%  { opacity: 0.97; }
+    94%  { opacity: 1.0; }
+    97%  { opacity: 1.0; }
+    98%  { opacity: 0.98; }
+    100% { opacity: 1.0; }
 }
 
-.retro-crt .xterm-rows {
-    text-shadow: 0 0 2px rgba(var(--color_r), var(--color_g), var(--color_b), 0.8),
-                 0 0 4px rgba(var(--color_r), var(--color_g), var(--color_b), 0.4);
+/* Refresh line sweeps from top to bottom */
+@keyframes crt-refresh-line {
+    0%   { background-position: 0 -100vh, center; }
+    100% { background-position: 0 200vh, center; }
 }
+
+

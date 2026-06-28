@@ -297,20 +297,46 @@ app.on('ready', async () => {
         signale.info('CLI: --devtools detected; opening browser devtools');
         settings.openDevTools = true;
     }
+    // Create the window immediately so the user sees something straight away.
+    // Shell resolution and shell-env can hang (especially for WindowsApps pwsh)
+    // so we decouple them from the window creation entirely.
+    signale.pending("Starting multithreaded calls controller...");
+    require("./_multithread.js");
+    createWindow(settings);
+
     signale.pending(`Resolving shell path...`);
-    if (process.platform === "win32" && settings.shell === "powershell.exe") {
+
+    // On Windows, try to find the best available shell.
+    // The WindowsApps execution alias for pwsh.exe is NOT on PATH, so which() will
+    // fail for it. We try the known absolute path first, then fall back gracefully.
+    if (process.platform === "win32") {
         try {
             const helper = require("./classes/terminalSettingsHelper");
             const wtShell = helper.getShell();
             if (wtShell) {
                 settings.shell = wtShell;
+                signale.info(`Shell resolved via Windows Terminal helper: ${settings.shell}`);
             }
         } catch (err) {
             signale.warn(`Failed to resolve shell from Windows Terminal profile: ${err.message}`);
         }
     }
-    settings.shell = await which(settings.shell).catch(e => { throw(e) });
-    signale.info(`Shell found at ${settings.shell}`);
+
+    // which() resolves the absolute path — but if the shell IS already an absolute
+    // path (e.g. from WindowsApps) and exists on disk, skip which() for it.
+    const fsCheck = require("fs");
+    const isAbsoluteExisting = path.isAbsolute(settings.shell) &&
+        (() => { try { return fsCheck.readdirSync(path.dirname(settings.shell)).some(f => f.toLowerCase() === path.basename(settings.shell).toLowerCase()); } catch(e) { return false; } })();
+
+    if (isAbsoluteExisting) {
+        signale.info(`Shell found at ${settings.shell} (absolute path, skipped which)`);
+    } else {
+        settings.shell = await which(settings.shell).catch(e => {
+            signale.warn(`which() failed for ${settings.shell}: ${e.message}. Falling back to powershell.exe`);
+            return which("powershell.exe").catch(() => "powershell.exe");
+        });
+        signale.info(`Shell found at ${settings.shell}`);
+    }
     signale.success(`Settings loaded!`);
 
     if (!require("fs").existsSync(settings.cwd)) throw new Error("Configured cwd path does not exist.");
@@ -321,7 +347,10 @@ app.on('ready', async () => {
         typeof shellEnvMod === "function" 
             ? shellEnvMod(settings.shell) 
             : (shellEnvMod.shellEnv ? shellEnvMod.shellEnv(settings.shell) : Promise.reject(new Error("shellEnv method not found in shell-env module")))
-    ).catch(e => { throw e; });
+    ).catch(e => {
+        signale.warn(`shell-env failed: ${e.message}. Using process.env as fallback.`);
+        return Object.assign({}, process.env);
+    });
 
     Object.assign(cleanEnv, {
         TERM: "xterm-256color",
@@ -356,12 +385,6 @@ app.on('ready', async () => {
         signale.error("Lost connection to frontend");
         signale.watch("Waiting for frontend connection...");
     };
-
-    // Support for multithreaded systeminformation calls
-    signale.pending("Starting multithreaded calls controller...");
-    require("./_multithread.js");
-
-    createWindow(settings);
 
     // Support for more terminals, used for creating tabs (currently limited to 4 extra terms)
     extraTtys = {};

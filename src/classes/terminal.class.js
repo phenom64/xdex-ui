@@ -148,8 +148,96 @@ class Terminal {
                 return true;
             });
             // Prevent soft-keyboard on touch devices #733
-            document.querySelectorAll('.xterm-helper-textarea').forEach(textarea => textarea.setAttribute('readonly', 'readonly'))
+            document.querySelectorAll('.xterm-helper-textarea').forEach(textarea => textarea.setAttribute('readonly', 'readonly'));
             this.term.focus();
+
+            // --- Phosphor Glow Overlay (mimics Windows Terminal retro effect) ---
+            // xterm renders via WebGL/Canvas2D, so CSS text-shadow has no effect.
+            // We create a Canvas2D overlay that reads from the xterm canvas each frame
+            // and blends a blurred copy back with "screen" compositing — this is the
+            // same principle Windows Terminal uses for its phosphor glow effect.
+            this._glowCanvas = null;
+            this._glowRaf = null;
+
+            this._startGlowOverlay = () => {
+                const parent = document.getElementById(opts.parentId);
+                if (!parent || this._glowCanvas) return;
+
+                // Find the xterm rendering canvas (WebGL or Canvas2D)
+                const srcCanvas = parent.querySelector('.xterm-screen canvas') ||
+                                  parent.querySelector('canvas');
+                if (!srcCanvas) return;
+
+                const overlay = document.createElement('canvas');
+                overlay.style.cssText = `
+                    position: absolute;
+                    top: 0; left: 0;
+                    width: 100%; height: 100%;
+                    pointer-events: none;
+                    z-index: 10;
+                    mix-blend-mode: screen;
+                `;
+                // Match the source canvas dimensions exactly
+                overlay.width = srcCanvas.width;
+                overlay.height = srcCanvas.height;
+
+                // Insert into the xterm-screen container so it sits right on top
+                const screen = parent.querySelector('.xterm-screen') || parent;
+                screen.style.position = 'relative';
+                screen.appendChild(overlay);
+                this._glowCanvas = overlay;
+
+                const ctx = overlay.getContext('2d');
+                const themeR = window.theme ? window.theme.r : 0;
+                const themeG = window.theme ? window.theme.g : 255;
+                const themeB = window.theme ? window.theme.b : 0;
+
+                const drawGlow = () => {
+                    if (!this._glowCanvas) return;
+
+                    // Sync size if terminal was resized
+                    if (overlay.width !== srcCanvas.width || overlay.height !== srcCanvas.height) {
+                        overlay.width = srcCanvas.width;
+                        overlay.height = srcCanvas.height;
+                    }
+
+                    ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+                    // Only draw when retro effect is enabled
+                    if (window.settings && window.settings.retroTerminalEffect) {
+                        // Pass 1: subtle wide bloom (screen blend via CSS mix-blend-mode)
+                        ctx.save();
+                        ctx.filter = 'blur(3px) brightness(0.7)';
+                        ctx.drawImage(srcCanvas, 0, 0);
+                        ctx.restore();
+
+                        // Pass 2: tight bright core glow
+                        ctx.save();
+                        ctx.filter = 'blur(1.5px) brightness(1.1)';
+                        ctx.globalAlpha = 0.45;
+                        ctx.drawImage(srcCanvas, 0, 0);
+                        ctx.restore();
+                    }
+
+                    this._glowRaf = requestAnimationFrame(drawGlow);
+                };
+
+                this._glowRaf = requestAnimationFrame(drawGlow);
+            };
+
+            this._stopGlowOverlay = () => {
+                if (this._glowRaf) {
+                    cancelAnimationFrame(this._glowRaf);
+                    this._glowRaf = null;
+                }
+                if (this._glowCanvas) {
+                    this._glowCanvas.remove();
+                    this._glowCanvas = null;
+                }
+            };
+
+            // Start after a short delay to let WebGL initialise and paint first
+            setTimeout(() => this._startGlowOverlay(), 500);
 
             this.Ipc.send("terminal_channel-"+this.port, "Renderer startup");
             this.Ipc.on("terminal_channel-"+this.port, (e, ...args) => {
