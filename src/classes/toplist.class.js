@@ -19,6 +19,16 @@ class Toplist {
             this.updateList();
         }, 2000);
     }
+    pause() {
+        if (this.listUpdater) { clearInterval(this.listUpdater); this.listUpdater = null; }
+    }
+
+    resume() {
+        if (!this.listUpdater) {
+            this.listUpdater = setInterval(() => this.updateList(), 2000);
+        }
+    }
+
     updateList() {
         if (document.visibilityState === "hidden") return;
         if (this.currentlyUpdating) return;

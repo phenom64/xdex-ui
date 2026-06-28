@@ -290,6 +290,16 @@ class Netstat {
             });
         });
     }
+    pause() {
+        if (this.infoUpdater) { clearInterval(this.infoUpdater); this.infoUpdater = null; }
+    }
+
+    resume() {
+        if (!this.infoUpdater) {
+            this.infoUpdater = setInterval(() => this.updateInfo(), 2000);
+        }
+    }
+
     updateInfo() {
         if (document.visibilityState === "hidden") return;
 

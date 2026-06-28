@@ -669,11 +669,33 @@ async function initUI() {
     await _delay(200);
 
     window.updateCheck = new UpdateChecker();
+    window.throttle = new ThrottleController(ipc);
+    window.throttle.addEventListener('change', onBattery => {
+        console.log('[SynDEX] Power mode:', onBattery ? 'BATTERY' : 'AC');
+    });
 
     // Initialize PanelManager
     window.panelMgr = new PanelManager(ipc, settingsFile, require('fs'));
-    window.panelMgr.register('leftColumn', document.getElementById('mod_column_left'), null);
-    window.panelMgr.register('rightColumn', document.getElementById('mod_column_right'), null);
+    window.panelMgr.register('leftColumn', document.getElementById('mod_column_left'), {
+        pause: () => {
+            if (window.mods.cpuinfo && window.mods.cpuinfo.pause) window.mods.cpuinfo.pause();
+            if (window.mods.toplist && window.mods.toplist.pause) window.mods.toplist.pause();
+        },
+        resume: () => {
+            if (window.mods.cpuinfo && window.mods.cpuinfo.resume) window.mods.cpuinfo.resume();
+            if (window.mods.toplist && window.mods.toplist.resume) window.mods.toplist.resume();
+        }
+    });
+    window.panelMgr.register('rightColumn', document.getElementById('mod_column_right'), {
+        pause: () => {
+            if (window.mods.netstat && window.mods.netstat.pause) window.mods.netstat.pause();
+            if (window.mods.conninfo && window.mods.conninfo.pause) window.mods.conninfo.pause();
+        },
+        resume: () => {
+            if (window.mods.netstat && window.mods.netstat.resume) window.mods.netstat.resume();
+            if (window.mods.conninfo && window.mods.conninfo.resume) window.mods.conninfo.resume();
+        }
+    });
     window.panelMgr.register('keyboard', document.getElementById('keyboard'), null);
     window.panelMgr.register('filesystem', document.getElementById('filesystem'), null);
 

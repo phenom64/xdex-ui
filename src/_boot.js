@@ -464,6 +464,18 @@ app.on('ready', async () => {
     ipc.on("setKbOverride", (e, arg) => {
         kbOverride = arg;
     });
+
+    // Battery-aware power state broadcaster
+    const { powerMonitor } = require('electron');
+    const _sendPowerState = () => {
+        if (win && win.webContents && !win.webContents.isDestroyed()) {
+            win.webContents.send('power-state-change', { onBattery: powerMonitor.onBatteryPower });
+        }
+    };
+    powerMonitor.on('on-battery', _sendPowerState);
+    powerMonitor.on('on-ac', _sendPowerState);
+    // Send initial state once app and window are ready (delay ensures renderer is loaded)
+    setTimeout(_sendPowerState, 4000);
 });
 
 app.on('web-contents-created', (e, contents) => {

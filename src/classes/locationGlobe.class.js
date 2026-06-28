@@ -54,6 +54,11 @@ class LocationGlobe {
 
             // Init animations
             this._animate = () => {
+                this._rAFCount = (this._rAFCount || 0) + 1;
+                if (window.throttle && window.throttle.onBattery && (this._rAFCount % 2 !== 0)) {
+                    requestAnimationFrame(window.mods.globe._animate);
+                    return;
+                }
                 if (window.mods.globe.globe && window.mods.globe._isVisible()) {
                     window.mods.globe.globe.tick();
                 }
