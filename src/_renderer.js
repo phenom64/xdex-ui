@@ -590,6 +590,7 @@ async function initUI() {
     window.mods.netstat = new Netstat("mod_column_right");
     window.mods.globe = new LocationGlobe("mod_column_right");
     window.mods.conninfo = new Conninfo("mod_column_right");
+    window.mods.agentwatch = new AgentWatch("mod_column_right");
 
     // Fade-in animations
     document.querySelectorAll(".mod_column").forEach(e => {
@@ -690,10 +691,12 @@ async function initUI() {
         pause: () => {
             if (window.mods.netstat && window.mods.netstat.pause) window.mods.netstat.pause();
             if (window.mods.conninfo && window.mods.conninfo.pause) window.mods.conninfo.pause();
+            if (window.mods.agentwatch && window.mods.agentwatch.pause) window.mods.agentwatch.pause();
         },
         resume: () => {
             if (window.mods.netstat && window.mods.netstat.resume) window.mods.netstat.resume();
             if (window.mods.conninfo && window.mods.conninfo.resume) window.mods.conninfo.resume();
+            if (window.mods.agentwatch && window.mods.agentwatch.resume) window.mods.agentwatch.resume();
         }
     });
     window.panelMgr.register('keyboard', document.getElementById('keyboard'), null);
