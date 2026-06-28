@@ -8,7 +8,7 @@ section#boot_screen {
     margin: 0vh;
     overflow: hidden;
 
-    font-family: monospace;
+    font-family: var(--font_mono), monospace;
     font-size: 1.4vh;
     text-align: left;
     display: flex;

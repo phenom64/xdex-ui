@@ -901,6 +901,27 @@ window.openSettings = async () => {
                             <option>${!window.settings.experimentalFeatures}</option>
                         </select></td>
                     </tr>
+                    <tr>
+                        <td>retroTerminalEffect</td>
+                        <td>Toggle the retro CRT overlay with scanlines and text glow</td>
+                        <td><select id="settingsEditor-retroTerminalEffect">
+                            <option>${window.settings.retroTerminalEffect}</option>
+                            <option>${!window.settings.retroTerminalEffect}</option>
+                        </select></td>
+                    </tr>
+                    <tr>
+                        <td>windowsTerminalColorScheme</td>
+                        <td>Name of Windows Terminal scheme to use (or "default")</td>
+                        <td><input type="text" id="settingsEditor-windowsTerminalColorScheme" value="${window.settings.windowsTerminalColorScheme || ''}"></td>
+                    </tr>
+                    <tr>
+                        <td>applyTerminalSchemeToUI</td>
+                        <td>Recolor UI panels/borders to match the WT scheme accent color</td>
+                        <td><select id="settingsEditor-applyTerminalSchemeToUI">
+                            <option>${window.settings.applyTerminalSchemeToUI}</option>
+                            <option>${!window.settings.applyTerminalSchemeToUI}</option>
+                        </select></td>
+                    </tr>
                 </table>
                 <h6 id="settingsEditorStatus">Loaded values from memory</h6>
                 <br>`,
@@ -952,7 +973,10 @@ window.writeSettingsFile = () => {
         hideDotfiles: (document.getElementById("settingsEditor-hideDotfiles").value === "true"),
         fsListView: (document.getElementById("settingsEditor-fsListView").value === "true"),
         experimentalGlobeFeatures: (document.getElementById("settingsEditor-experimentalGlobeFeatures").value === "true"),
-        experimentalFeatures: (document.getElementById("settingsEditor-experimentalFeatures").value === "true")
+        experimentalFeatures: (document.getElementById("settingsEditor-experimentalFeatures").value === "true"),
+        retroTerminalEffect: (document.getElementById("settingsEditor-retroTerminalEffect").value === "true"),
+        windowsTerminalColorScheme: document.getElementById("settingsEditor-windowsTerminalColorScheme").value,
+        applyTerminalSchemeToUI: (document.getElementById("settingsEditor-applyTerminalSchemeToUI").value === "true")
     };
 
     Object.keys(window.settings).forEach(key => {

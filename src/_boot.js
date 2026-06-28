@@ -298,6 +298,17 @@ app.on('ready', async () => {
         settings.openDevTools = true;
     }
     signale.pending(`Resolving shell path...`);
+    if (process.platform === "win32" && settings.shell === "powershell.exe") {
+        try {
+            const helper = require("./classes/terminalSettingsHelper");
+            const wtShell = helper.getShell();
+            if (wtShell) {
+                settings.shell = wtShell;
+            }
+        } catch (err) {
+            signale.warn(`Failed to resolve shell from Windows Terminal profile: ${err.message}`);
+        }
+    }
     settings.shell = await which(settings.shell).catch(e => { throw(e) });
     signale.info(`Shell found at ${settings.shell}`);
     signale.success(`Settings loaded!`);
