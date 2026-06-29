@@ -252,6 +252,20 @@ class Sysinfo {
             });
         });
     }
+
+    pause() {
+        if (this.uptimeUpdater) { clearInterval(this.uptimeUpdater); this.uptimeUpdater = null; }
+        if (this.batteryUpdater) { clearInterval(this.batteryUpdater); this.batteryUpdater = null; }
+    }
+
+    resume() {
+        if (!this.uptimeUpdater) {
+            this.uptimeUpdater = setInterval(() => this.updateUptime(), 60000);
+        }
+        if (!this.batteryUpdater) {
+            this.batteryUpdater = setInterval(() => this.updateBattery(), 15000);
+        }
+    }
 }
 
 module.exports = {

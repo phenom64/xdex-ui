@@ -50,6 +50,16 @@ class HardwareInspector {
             return !filters.includes(word);
         }).slice(0, 2).join(" ");
     }
+
+    pause() {
+        if (this.infoUpdater) { clearInterval(this.infoUpdater); this.infoUpdater = null; }
+    }
+
+    resume() {
+        if (!this.infoUpdater) {
+            this.infoUpdater = setInterval(() => this.updateInfo(), 300000);
+        }
+    }
 }
 
 module.exports = {

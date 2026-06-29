@@ -53,6 +53,16 @@ class Clock {
         }
         this.lastTime = time;
     }
+
+    pause() {
+        if (this.updater) { clearInterval(this.updater); this.updater = null; }
+    }
+
+    resume() {
+        if (!this.updater) {
+            this.updater = setInterval(() => this.updateClock(), 1000);
+        }
+    }
 }
 
 module.exports = {

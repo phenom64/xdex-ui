@@ -87,6 +87,16 @@ class RAMwatcher {
             [array[i], array[j]] = [array[j], array[i]];
         }
     }
+
+    pause() {
+        if (this.infoUpdater) { clearInterval(this.infoUpdater); this.infoUpdater = null; }
+    }
+
+    resume() {
+        if (!this.infoUpdater) {
+            this.infoUpdater = setInterval(() => this.updateInfo(), 1500);
+        }
+    }
 }
 
 module.exports = {

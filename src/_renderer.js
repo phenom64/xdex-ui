@@ -512,6 +512,7 @@ async function initUI() {
     <section class="mod_column" id="mod_column_right">
         <h3 class="title"><p>PANEL</p><p>NETWORK</p></h3>
     </section>`;
+    document.body.classList.add("syndex-layout");
 
     await _delay(10);
 
@@ -528,6 +529,9 @@ async function initUI() {
     document.getElementById("main_shell").setAttribute("style", "opacity: 0;");
     document.body.innerHTML += `
     <section id="filesystem" style="width: 0px;" class="${window.settings.hideDotfiles ? "hideDotfiles" : ""} ${window.settings.fsListView ? "list-view" : ""}">
+    </section>
+    <section id="agent_watch">
+        <h3 class="title"><p>PANEL</p><p>AGENT WATCH</p></h3>
     </section>
     <section id="keyboard" style="opacity:0;">
     </section>`;
@@ -601,7 +605,8 @@ async function initUI() {
     initModule("netstat", Netstat, "mod_column_right");
     initModule("globe", LocationGlobe, "mod_column_right");
     initModule("conninfo", Conninfo, "mod_column_right");
-    initModule("agentwatch", AgentWatch, "mod_column_right");
+    initModule("agentwatch", AgentWatch, "agent_watch");
+    document.getElementById("agent_watch").setAttribute("style", "opacity: 1;");
 
     // Fade-in animations
     document.querySelectorAll(".mod_column").forEach(e => {
@@ -688,30 +693,30 @@ async function initUI() {
 
     // Initialize PanelManager
     window.panelMgr = new PanelManager(ipc, settingsFile, require('fs'));
+    const pauseMods = names => names.forEach(m => {
+        if (window.mods[m] && window.mods[m].pause) window.mods[m].pause();
+    });
+    const resumeMods = names => names.forEach(m => {
+        if (window.mods[m] && window.mods[m].resume) window.mods[m].resume();
+    });
+    const leftColumnMods = ["cpuinfo", "toplist", "clock", "sysinfo", "hardwareInspector", "ramwatcher"];
+    const rightColumnMods = ["netstat", "conninfo", "globe"];
+
     window.panelMgr.register('leftColumn', document.getElementById('mod_column_left'), {
-        pause: () => {
-            if (window.mods.cpuinfo && window.mods.cpuinfo.pause) window.mods.cpuinfo.pause();
-            if (window.mods.toplist && window.mods.toplist.pause) window.mods.toplist.pause();
-        },
-        resume: () => {
-            if (window.mods.cpuinfo && window.mods.cpuinfo.resume) window.mods.cpuinfo.resume();
-            if (window.mods.toplist && window.mods.toplist.resume) window.mods.toplist.resume();
-        }
+        pause: () => pauseMods(leftColumnMods),
+        resume: () => resumeMods(leftColumnMods)
     });
     window.panelMgr.register('rightColumn', document.getElementById('mod_column_right'), {
-        pause: () => {
-            if (window.mods.netstat && window.mods.netstat.pause) window.mods.netstat.pause();
-            if (window.mods.conninfo && window.mods.conninfo.pause) window.mods.conninfo.pause();
-            if (window.mods.agentwatch && window.mods.agentwatch.pause) window.mods.agentwatch.pause();
-        },
-        resume: () => {
-            if (window.mods.netstat && window.mods.netstat.resume) window.mods.netstat.resume();
-            if (window.mods.conninfo && window.mods.conninfo.resume) window.mods.conninfo.resume();
-            if (window.mods.agentwatch && window.mods.agentwatch.resume) window.mods.agentwatch.resume();
-        }
+        pause: () => pauseMods(rightColumnMods),
+        resume: () => resumeMods(rightColumnMods)
     });
     window.panelMgr.register('keyboard', document.getElementById('keyboard'), null);
-    window.panelMgr.register('filesystem', document.getElementById('filesystem'), null);
+    window.panelMgr.register('filesystem', document.getElementById('filesystem'), {
+        pause: () => { if (window.fsDisp && window.fsDisp.pause) window.fsDisp.pause(); },
+        resume: () => { if (window.fsDisp && window.fsDisp.resume) window.fsDisp.resume(); }
+    });
+    window.panelMgr.register('agentWatch', document.getElementById('agent_watch'), window.mods.agentwatch);
+    window.panelMgr.initLayout();
 
     // Panel toggle keyboard shortcuts
     document.addEventListener('keydown', e => {
@@ -721,6 +726,7 @@ async function initUI() {
                 case 'KeyS': e.preventDefault(); window.panelMgr.toggle('leftColumn'); break;
                 case 'KeyN': e.preventDefault(); window.panelMgr.toggle('rightColumn'); break;
                 case 'KeyF': e.preventDefault(); window.panelMgr.toggle('filesystem'); break;
+                case 'KeyA': e.preventDefault(); window.panelMgr.toggle('agentWatch'); break;
             }
         }
     });
@@ -809,8 +815,12 @@ window.openSettings = async () => {
         keyboard: true,
         leftColumn: true,
         rightColumn: true,
-        filesystem: true
+        filesystem: true,
+        agentWatch: true
     }, window.settings.panelToggles || {});
+    window.settings.panelLayout = Object.assign({
+        agentWatchSlot: "bottom-left"
+    }, window.settings.panelLayout || {});
 
     // Build lists of available keyboards, themes, monitors
     let keyboards, themes, monitors, ifaces;
@@ -1065,7 +1075,7 @@ window.openSettings = async () => {
                     </tr>
                     <tr>
                         <td>panelToggles.rightColumn</td>
-                        <td>Show the network and AgentWatch panel column on startup</td>
+                        <td>Show the network panel column on startup</td>
                         <td><select id="settingsEditor-panelRightColumn">
                             <option>${window.settings.panelToggles.rightColumn !== false}</option>
                             <option>${window.settings.panelToggles.rightColumn === false}</option>
@@ -1077,6 +1087,24 @@ window.openSettings = async () => {
                         <td><select id="settingsEditor-panelFilesystem">
                             <option>${window.settings.panelToggles.filesystem !== false}</option>
                             <option>${window.settings.panelToggles.filesystem === false}</option>
+                        </select></td>
+                    </tr>
+                    <tr>
+                        <td>panelToggles.agentWatch</td>
+                        <td>Show the Agent Watch panel on startup</td>
+                        <td><select id="settingsEditor-panelAgentWatch">
+                            <option>${window.settings.panelToggles.agentWatch !== false}</option>
+                            <option>${window.settings.panelToggles.agentWatch === false}</option>
+                        </select></td>
+                    </tr>
+                    <tr>
+                        <td>panelLayout.agentWatchSlot</td>
+                        <td>Default Agent Watch panel position</td>
+                        <td><select id="settingsEditor-agentWatchSlot">
+                            <option>${window.settings.panelLayout.agentWatchSlot || "bottom-left"}</option>
+                            <option>bottom-left</option>
+                            <option>bottom-right</option>
+                            <option>right-rail</option>
                         </select></td>
                     </tr>
                 </table>
@@ -1139,7 +1167,11 @@ window.writeSettingsFile = () => {
             keyboard: (document.getElementById("settingsEditor-panelKeyboard").value === "true"),
             leftColumn: (document.getElementById("settingsEditor-panelLeftColumn").value === "true"),
             rightColumn: (document.getElementById("settingsEditor-panelRightColumn").value === "true"),
-            filesystem: (document.getElementById("settingsEditor-panelFilesystem").value === "true")
+            filesystem: (document.getElementById("settingsEditor-panelFilesystem").value === "true"),
+            agentWatch: (document.getElementById("settingsEditor-panelAgentWatch").value === "true")
+        },
+        panelLayout: {
+            agentWatchSlot: document.getElementById("settingsEditor-agentWatchSlot").value || "bottom-left"
         }
     };
 
@@ -1149,7 +1181,16 @@ window.writeSettingsFile = () => {
         }
     });
 
+    if (window.panelMgr && typeof window.panelMgr.syncSettings === "function") {
+        window.panelMgr.syncSettings(window.settings);
+    }
+
     fs.writeFileSync(settingsFile, JSON.stringify(window.settings, "", 4));
+
+    if (window.panelMgr && typeof window.panelMgr.reloadFromSettings === "function") {
+        window.panelMgr.reloadFromSettings(window.settings);
+    }
+
     document.getElementById("settingsEditorStatus").innerText = "New values written to settings.json file at " + new Date().toTimeString();
 };
 

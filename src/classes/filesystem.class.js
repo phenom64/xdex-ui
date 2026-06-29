@@ -759,6 +759,21 @@ class FilesystemDisplay {
             }
         };
     }
+
+    pause() {
+        if (this._timer) { clearInterval(this._timer); this._timer = null; }
+    }
+
+    resume() {
+        if (!this._timer) {
+            this._timer = setInterval(() => {
+                if (this._runNextTick === true) {
+                    this._runNextTick = false;
+                    this.readFS(this.dirpath);
+                }
+            }, 1000);
+        }
+    }
 }
 
 module.exports = {

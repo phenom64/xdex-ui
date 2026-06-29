@@ -88,6 +88,10 @@
 
 @media (aspect-ratio: 5/4), (aspect-ratio: 4/3) {
     section#filesystem {
+        width: 28vw;
+    }
+
+    body.syndex-layout.panel-filesystem-hidden section#filesystem {
         display: none;
     }
 

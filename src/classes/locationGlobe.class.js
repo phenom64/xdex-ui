@@ -52,8 +52,11 @@ class LocationGlobe {
             placeholder.remove();
             innerContainer.append(this.globe.domElement);
 
+            this._paused = false;
+
             // Init animations
             this._animate = () => {
+                if (this._paused) return;
                 this._rAFCount = (this._rAFCount || 0) + 1;
                 if (window.throttle && window.throttle.onBattery && (this._rAFCount % 2 !== 0)) {
                     requestAnimationFrame(window.mods.globe._animate);
@@ -265,6 +268,26 @@ class LocationGlobe {
         }).catch(e => {
             console.error("Globe Connections Error:", e);
         });
+    }
+
+    pause() {
+        this._paused = true;
+        if (this.locUpdater) { clearInterval(this.locUpdater); this.locUpdater = null; }
+        if (this.connsUpdater) { clearInterval(this.connsUpdater); this.connsUpdater = null; }
+    }
+
+    resume() {
+        if (!this._paused) return;
+        this._paused = false;
+        if (!this.locUpdater) {
+            this.locUpdater = setInterval(() => this.updateLoc(), 1000);
+        }
+        if (!this.connsUpdater) {
+            this.connsUpdater = setInterval(() => this.updateConns(), 3000);
+        }
+        if (this._animate && !this._paused) {
+            this._animate();
+        }
     }
 }
 
