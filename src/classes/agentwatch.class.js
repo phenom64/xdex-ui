@@ -37,11 +37,12 @@ class AgentWatch {
         }
 
         // Listen for IPC updates
-        const ipc = require("@electron/remote").ipcRenderer;
+        const ipc = require("electron").ipcRenderer;
         ipc.on("agentwatch-update", (e, payload) => {
             this._data = payload;
             this._render();
         });
+        this._render();
     }
 
     _render() {

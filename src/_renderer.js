@@ -402,7 +402,7 @@ function displayLine() {
 
     switch (true) {
         case i === 2:
-            bootScreen.innerHTML += `xDEX-UI Kernel version ${remote.app.getVersion()} boot at ${Date().toString()}; root:xnu-1699.22.73~1/RELEASE_X86_64`;
+            bootScreen.innerHTML += `SynDEX Kernel version ${remote.app.getVersion()} boot at ${Date().toString()}; root:xnu-1699.22.73~1/RELEASE_X86_64`;
         case i === 4:
             setTimeout(displayLine, 500);
             break;
@@ -447,7 +447,7 @@ async function displayTitleScreen() {
 
     setBodyClass("");
     bootScreen.setAttribute("class", "center");
-    bootScreen.innerHTML = "<h1>xDEX-UI</h1>";
+    bootScreen.innerHTML = "<h1>SynDEX</h1>";
     let title = document.querySelector("section > h1");
 
     await _delay(200);
@@ -577,20 +577,31 @@ async function initUI() {
 
     // Initialize modules
     window.mods = {};
+    const initModule = (name, ClassRef, parentId) => {
+        try {
+            window.mods[name] = new ClassRef(parentId);
+        } catch (err) {
+            console.error(`Failed to initialize ${name} module:`, err);
+            try {
+                ipc.send("log", "error", `Failed to initialize ${name} module: ${err.message || err}`);
+            } catch(e) {}
+            window.mods[name] = null;
+        }
+    };
 
     // Left column
-    window.mods.clock = new Clock("mod_column_left");
-    window.mods.sysinfo = new Sysinfo("mod_column_left");
-    window.mods.hardwareInspector = new HardwareInspector("mod_column_left");
-    window.mods.cpuinfo = new Cpuinfo("mod_column_left");
-    window.mods.ramwatcher = new RAMwatcher("mod_column_left");
-    window.mods.toplist = new Toplist("mod_column_left");
+    initModule("clock", Clock, "mod_column_left");
+    initModule("sysinfo", Sysinfo, "mod_column_left");
+    initModule("hardwareInspector", HardwareInspector, "mod_column_left");
+    initModule("cpuinfo", Cpuinfo, "mod_column_left");
+    initModule("ramwatcher", RAMwatcher, "mod_column_left");
+    initModule("toplist", Toplist, "mod_column_left");
 
     // Right column
-    window.mods.netstat = new Netstat("mod_column_right");
-    window.mods.globe = new LocationGlobe("mod_column_right");
-    window.mods.conninfo = new Conninfo("mod_column_right");
-    window.mods.agentwatch = new AgentWatch("mod_column_right");
+    initModule("netstat", Netstat, "mod_column_right");
+    initModule("globe", LocationGlobe, "mod_column_right");
+    initModule("conninfo", Conninfo, "mod_column_right");
+    initModule("agentwatch", AgentWatch, "mod_column_right");
 
     // Fade-in animations
     document.querySelectorAll(".mod_column").forEach(e => {
@@ -794,6 +805,12 @@ window.focusShellTab = number => {
 // Settings editor
 window.openSettings = async () => {
     if (document.getElementById("settingsEditor")) return;
+    window.settings.panelToggles = Object.assign({
+        keyboard: true,
+        leftColumn: true,
+        rightColumn: true,
+        filesystem: true
+    }, window.settings.panelToggles || {});
 
     // Build lists of available keyboards, themes, monitors
     let keyboards, themes, monitors, ifaces;
@@ -1030,6 +1047,38 @@ window.openSettings = async () => {
                             <option>${!window.settings.applyTerminalSchemeToUI}</option>
                         </select></td>
                     </tr>
+                    <tr>
+                        <td>panelToggles.keyboard</td>
+                        <td>Show the on-screen keyboard panel on startup</td>
+                        <td><select id="settingsEditor-panelKeyboard">
+                            <option>${window.settings.panelToggles.keyboard !== false}</option>
+                            <option>${window.settings.panelToggles.keyboard === false}</option>
+                        </select></td>
+                    </tr>
+                    <tr>
+                        <td>panelToggles.leftColumn</td>
+                        <td>Show the system panel column on startup</td>
+                        <td><select id="settingsEditor-panelLeftColumn">
+                            <option>${window.settings.panelToggles.leftColumn !== false}</option>
+                            <option>${window.settings.panelToggles.leftColumn === false}</option>
+                        </select></td>
+                    </tr>
+                    <tr>
+                        <td>panelToggles.rightColumn</td>
+                        <td>Show the network and AgentWatch panel column on startup</td>
+                        <td><select id="settingsEditor-panelRightColumn">
+                            <option>${window.settings.panelToggles.rightColumn !== false}</option>
+                            <option>${window.settings.panelToggles.rightColumn === false}</option>
+                        </select></td>
+                    </tr>
+                    <tr>
+                        <td>panelToggles.filesystem</td>
+                        <td>Show the filesystem panel on startup</td>
+                        <td><select id="settingsEditor-panelFilesystem">
+                            <option>${window.settings.panelToggles.filesystem !== false}</option>
+                            <option>${window.settings.panelToggles.filesystem === false}</option>
+                        </select></td>
+                    </tr>
                 </table>
                 <h6 id="settingsEditorStatus">Loaded values from memory</h6>
                 <br>`,
@@ -1037,7 +1086,7 @@ window.openSettings = async () => {
             { label: "Open in External Editor", action: `electron.shell.openPath('${settingsFile}');electronWin.minimize();` },
             { label: "Save to Disk", action: "window.writeSettingsFile()" },
             { label: "Reload UI", action: "window.location.reload(true);" },
-            { label: "Restart xDEX-UI", action: "remote.app.relaunch();remote.app.quit();" }
+            { label: "Restart SynDEX", action: "remote.app.relaunch();remote.app.quit();" }
         ]
     }, () => {
         // Link the keyboard back to the terminal
@@ -1085,7 +1134,13 @@ window.writeSettingsFile = () => {
         retroTerminalEffect: (document.getElementById("settingsEditor-retroTerminalEffect").value === "true"),
         retroUIEffect: (document.getElementById("settingsEditor-retroUIEffect").value === "true"),
         windowsTerminalColorScheme: document.getElementById("settingsEditor-windowsTerminalColorScheme").value,
-        applyTerminalSchemeToUI: (document.getElementById("settingsEditor-applyTerminalSchemeToUI").value === "true")
+        applyTerminalSchemeToUI: (document.getElementById("settingsEditor-applyTerminalSchemeToUI").value === "true"),
+        panelToggles: {
+            keyboard: (document.getElementById("settingsEditor-panelKeyboard").value === "true"),
+            leftColumn: (document.getElementById("settingsEditor-panelLeftColumn").value === "true"),
+            rightColumn: (document.getElementById("settingsEditor-panelRightColumn").value === "true"),
+            filesystem: (document.getElementById("settingsEditor-panelFilesystem").value === "true")
+        }
     };
 
     Object.keys(window.settings).forEach(key => {

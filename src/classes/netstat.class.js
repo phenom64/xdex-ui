@@ -215,7 +215,7 @@ class Netstat {
                     path: provider.path,
                     localAddress: provider.localAddress,
                     agent: this._httpsAgent,
-                    headers: { "User-Agent": "xDEX-UI" }
+                    headers: { "User-Agent": "SynDEX" }
                 }).then(data => {
                     const result = provider.parse(data);
                     if (!result) throw new Error("Remote GeoIP response did not contain coordinates");
@@ -276,7 +276,7 @@ class Netstat {
                 path: "/",
                 localAddress,
                 agent: this._httpsAgent,
-                headers: { "User-Agent": "xDEX-UI" }
+                headers: { "User-Agent": "SynDEX" }
             }, res => {
                 res.resume();
                 res.on("end", () => {

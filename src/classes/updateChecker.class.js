@@ -18,7 +18,7 @@ class UpdateChecker {
             host: "api.github.com",
             path: "/repos/andreas-hartmann/xdex-ui/releases/latest",
             headers: {
-                "User-Agent": "xDEX-UI UpdateChecker"
+                "User-Agent": "SynDEX UpdateChecker"
             }
         }, res => {
             switch(res.statusCode) {
@@ -54,7 +54,7 @@ class UpdateChecker {
                             new Modal({
                                 type: "info",
                                 title: "New version available",
-                                message: `xDEX-UI <strong>${release.tag_name}</strong> is now available.<br/>Head over to <a href="#" onclick="require('electron').shell.openExternal('${release.html_url}')">github.com</a> to download the latest version.`
+                                message: `SynDEX <strong>${release.tag_name}</strong> is now available.<br/>Head over to <a href="#" onclick="require('electron').shell.openExternal('${release.html_url}')">github.com</a> to download the latest version.`
                             });
                             electron.ipcRenderer.send("log", "info", `UpdateChecker: New version ${release.tag_name} available.`);
                         }

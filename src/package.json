@@ -1,8 +1,8 @@
 {
-  "name": "xdex-ui",
-  "productName": "xDEX-UI",
-  "version": "3.0.0",
-  "description": "xDEX-UI sci-fi interface",
+  "name": "syndex",
+  "productName": "SynDEX",
+  "version": "3.1.0",
+  "description": "A developer cockpit for the agentic AI era.",
   "keywords": [
     "desktop",
     "sci-fi",
