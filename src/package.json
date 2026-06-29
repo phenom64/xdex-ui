@@ -14,14 +14,14 @@
   "main": "_boot.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/andreas-hartmann/xdex-ui"
+    "url": "git+https://github.com/phenom64/SynDEX.git"
   },
   "author": "Gabriel 'Squared' SAILLARD <gabriel@saillard.dev> (https://gaby.dev)",
   "license": "GPL-3.0",
   "bugs": {
-    "url": "https://github.com/andreas-hartmann/xdex-ui/issues"
+    "url": "https://github.com/phenom64/SynDEX/issues"
   },
-  "homepage": "https://github.com/andreas-hartmann/xdex-ui#readme",
+  "homepage": "https://github.com/phenom64/SynDEX#readme",
   "dependencies": {
     "@electron/remote": "2.1.2",
     "augmented-ui": "^1.1.2",

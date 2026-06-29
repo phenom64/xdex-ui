@@ -33,14 +33,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/phenom64/xdex-ui.git"
+    "url": "git+https://github.com/phenom64/SynDEX.git"
   },
   "author": "Gabriel 'Squared' SAILLARD <gabriel@saillard.dev> (https://gaby.dev)",
   "license": "GPL-3.0",
   "bugs": {
-    "url": "https://github.com/phenom64/xdex-ui/issues"
+    "url": "https://github.com/phenom64/SynDEX/issues"
   },
-  "homepage": "https://github.com/phenom64/xdex-ui#readme",
+  "homepage": "https://github.com/phenom64/SynDEX#readme",
   "build": {
     "appId": "com.syndex.ui",
     "productName": "SynDEX",

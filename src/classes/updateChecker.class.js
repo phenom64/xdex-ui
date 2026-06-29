@@ -16,7 +16,7 @@ class UpdateChecker {
         https.get({
             protocol: "https:",
             host: "api.github.com",
-            path: "/repos/andreas-hartmann/xdex-ui/releases/latest",
+            path: "/repos/phenom64/SynDEX/releases/latest",
             headers: {
                 "User-Agent": "SynDEX UpdateChecker"
             }
